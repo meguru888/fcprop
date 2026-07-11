@@ -41,7 +41,7 @@ export async function summarizeIcp(supabase: SupabaseClient, icpId: string) {
       temperature: 0.3,
     });
     summary = completion.choices[0]?.message?.content?.trim() ?? icp.chat_text.slice(0, 200);
-    source = "gpt-4o";
+    source = CHAT_MODEL;
     confidence = 0.9;
   } else {
     summary = (icp.chat_text ?? "").slice(0, 200);
@@ -99,7 +99,7 @@ export async function extractPainPoints(supabase: SupabaseClient, clientProfileI
       temperature: 0.3,
     });
     painPoints = completion.choices[0]?.message?.content?.trim() ?? "";
-    source = "gpt-4o";
+    source = CHAT_MODEL;
     confidence = 0.85;
   } else {
     painPoints = (profile.notes_text ?? "").slice(0, 200);
@@ -157,7 +157,7 @@ export async function embedKbDoc(supabase: SupabaseClient, kbDocId: string) {
       temperature: 0.4,
     });
     conceptSummary = completion.choices[0]?.message?.content?.trim() ?? null;
-    source = "gpt-4o";
+    source = CHAT_MODEL;
     confidence = 0.5;
   } else if (!conceptSummary) {
     conceptSummary = doc.original_filename ?? "Uploaded product document";
@@ -416,7 +416,7 @@ export async function generateProposal(
         benefit_timeline: Array.isArray(parsed.benefit_timeline) ? parsed.benefit_timeline : undefined,
       },
     };
-    contentSource = "gpt-4o";
+    contentSource = CHAT_MODEL;
     confidence = 0.85;
   } else {
     content = {

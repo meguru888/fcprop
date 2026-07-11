@@ -9,5 +9,5 @@ export function getOpenAI(): OpenAI | null {
   return client;
 }
 
-export const CHAT_MODEL = "gpt-4o";
+export const CHAT_MODEL = "gpt-5.4-mini";
 export const EMBEDDING_MODEL = "text-embedding-3-small";
