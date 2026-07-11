@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
 });
 
 const SECTIONS: { key: keyof ProposalContent["proposal_sections"]; label: string }[] = [
-  { key: "opening_story", label: "Opening Story" },
+  { key: "opening_story", label: "Your Life's Journey" },
   { key: "problem_bridge", label: "The Challenge" },
   { key: "solution_reveal", label: "The Solution" },
   { key: "benefit_breakdown", label: "What You Get" },

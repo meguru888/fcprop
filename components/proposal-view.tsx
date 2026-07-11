@@ -2,7 +2,7 @@ import type { Proposal, ProposalContent } from "@/lib/supabase/types";
 import { ProposalApproveButton } from "@/components/proposal-approve-button";
 
 const SECTIONS: { key: keyof ProposalContent["proposal_sections"]; label: string; accent: string }[] = [
-  { key: "opening_story", label: "Opening Story", accent: "border-indigo-300 bg-indigo-50" },
+  { key: "opening_story", label: "Your Life's Journey", accent: "border-indigo-300 bg-indigo-50" },
   { key: "problem_bridge", label: "The Challenge", accent: "border-amber-300 bg-amber-50" },
   { key: "solution_reveal", label: "The Solution", accent: "border-emerald-300 bg-emerald-50" },
   { key: "benefit_breakdown", label: "What You Get", accent: "border-sky-300 bg-sky-50" },

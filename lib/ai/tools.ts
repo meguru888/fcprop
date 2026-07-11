@@ -350,10 +350,16 @@ export async function generateProposal(
             'Write in direct second person — "you" and "your" — as if speaking straight to them. Never describe them in the third person ' +
             '(not "Sarah faces these risks" but "you\'re facing these risks"). You may use their first name once or twice for warmth, ' +
             "never as a substitute for direct address.\n\n" +
+            "This must read like real talk from an FC who actually knows this client's situation from a real fact-find — not a " +
+            'storybook narrator. In EVERY section, never use fictional framing devices like "Picture this", "Imagine", "Once", or ' +
+            "invented scene details (weather, rooms, moments) that aren't implied by their actual data — this applies to dream_outcome " +
+            "just as much as opening_story. State things plainly and specifically, using only what's in their profile, pain points, and " +
+            "life stage — grounded fact delivered with warmth, not invented narrative or hypotheticals dressed up as scenes.\n\n" +
             "Structure the six sections as an emotional bridge that carries the client from their life today to the life they want, " +
             "with the product as the vehicle that closes the gap:\n" +
-            "- opening_story: Meet them where they are right now. Reflect back their life stage and what they've worked hard to build, " +
-            "and the quiet worry sitting underneath it, grounded in their actual pain points and profile — specific, not generic.\n" +
+            "- opening_story: Ground them in their real, current situation right now — their actual life stage, what they've genuinely " +
+            "built so far, and the real concern underneath it, drawn directly from their pain points and profile. This is a plain, " +
+            "honest reflection of their actual circumstances, not a scene-setting story.\n" +
             "- problem_bridge: Name the specific risks concretely — what's exposed, what could go wrong. Then make the cost of doing " +
             "nothing vivid and real: what happens to them and the people they love if this gap stays open, and how it widens the longer " +
             "they wait. Create urgency through honest clarity, not pressure.\n" +
@@ -361,10 +367,11 @@ export async function generateProposal(
             "to where they want to be. A turning point, not a feature list.\n" +
             "- benefit_breakdown: Connect each benefit directly back to a specific pain point named earlier — show concretely how each " +
             "worry gets resolved.\n" +
-            "- dream_outcome: Paint the 'after' picture vividly and specifically — the peace of mind, the family protected, the " +
-            "milestones secured — in clear contrast to the 'before' of opening_story.\n" +
+            "- dream_outcome: Describe the 'after' state concretely and plausibly — the peace of mind, the family protected, the " +
+            "milestones secured — in clear contrast to opening_story. Ground it in their real goals, not invented imagery.\n" +
             "- call_to_action: A warm, direct, personal invitation to take the next step together.\n\n" +
-            "Each section should be 3-5 sentences, concrete and specific to this client — no filler or boilerplate reassurance.\n\n" +
+            "Each section should be 3-5 sentences, concrete and specific to this client — no filler, no clichés, no boilerplate " +
+            "reassurance.\n\n" +
             "Respond with ONLY valid JSON matching this shape: " +
             '{"opening_story": string, "problem_bridge": string, "solution_reveal": string, "benefit_breakdown": string, "dream_outcome": string, "call_to_action": string, ' +
             '"before_after": [{"label": string, "before": number, "after": number}], "benefit_timeline": [{"year": number, "value": number}]}. ' +
@@ -427,7 +434,7 @@ export async function generateProposal(
           : "Right now there are gaps in your financial protection, and they won't close themselves — the longer they sit open, the more exposed you and your family become.",
         solution_reveal: `That's where ${productUsed} comes in — think of it as the bridge from where you are today to the security you actually want.`,
         benefit_breakdown: `${productUsed} is built to answer the exact gaps you're facing, so each worry we named has something concrete standing against it.`,
-        dream_outcome: "Picture the other side of this: the gap closed, your family protected, and one less thing keeping you up at night.",
+        dream_outcome: "On the other side of this: the gap closed, your family protected, and one less thing keeping you up at night.",
         call_to_action: "Let's take the next step together and get this in place for you.",
       },
       charts: {
