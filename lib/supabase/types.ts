@@ -76,7 +76,7 @@ export interface ProposalContent {
     call_to_action: string;
   };
   charts?: {
-    coverage_gap?: { label: string; value: number }[];
+    before_after?: { label: string; before: number; after: number }[];
     benefit_timeline?: { year: number; value: number }[];
   };
 }

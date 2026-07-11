@@ -61,24 +61,33 @@ export function ProposalView({
         ))}
       </div>
 
-      {(content.charts?.coverage_gap?.length || content.charts?.benefit_timeline?.length) ? (
+      {(content.charts?.before_after?.length || content.charts?.benefit_timeline?.length) ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {content.charts.coverage_gap && content.charts.coverage_gap.length > 0 && (
+          {content.charts.before_after && content.charts.before_after.length > 0 && (
             <div className="rounded-lg border border-neutral-200 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                Coverage Gap (illustrative)
+                Before &amp; After (illustrative)
               </p>
-              <div className="mt-3 space-y-2">
-                {content.charts.coverage_gap.map((bar, i) => (
+              <div className="mt-3 space-y-3">
+                {content.charts.before_after.map((bar, i) => (
                   <div key={i}>
                     <div className="flex justify-between text-xs text-neutral-600">
                       <span>{bar.label}</span>
-                      <span>{bar.value}</span>
+                      <span>
+                        {bar.before} <span className="text-neutral-400">→</span>{" "}
+                        <span className="font-medium text-emerald-600">{bar.after}</span>
+                      </span>
                     </div>
                     <div className="mt-1 h-2 w-full rounded-full bg-neutral-100">
                       <div
-                        className="h-2 rounded-full bg-amber-500"
-                        style={{ width: `${Math.min(100, Math.max(0, bar.value))}%` }}
+                        className="h-2 rounded-full bg-amber-400"
+                        style={{ width: `${Math.min(100, Math.max(0, bar.before))}%` }}
+                      />
+                    </div>
+                    <div className="mt-1 h-2 w-full rounded-full bg-neutral-100">
+                      <div
+                        className="h-2 rounded-full bg-emerald-500"
+                        style={{ width: `${Math.min(100, Math.max(0, bar.after))}%` }}
                       />
                     </div>
                   </div>

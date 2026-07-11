@@ -346,13 +346,32 @@ export async function generateProposal(
         {
           role: "system",
           content:
-            "You write emotionally resonant, story-driven financial proposals for Singapore financial consultants to present to clients. Respond with ONLY valid JSON matching this shape: " +
+            "You are a warm, perceptive Singapore financial consultant (FC) writing a proposal to read aloud to your own client. " +
+            'Write in direct second person — "you" and "your" — as if speaking straight to them. Never describe them in the third person ' +
+            '(not "Sarah faces these risks" but "you\'re facing these risks"). You may use their first name once or twice for warmth, ' +
+            "never as a substitute for direct address.\n\n" +
+            "Structure the six sections as an emotional bridge that carries the client from their life today to the life they want, " +
+            "with the product as the vehicle that closes the gap:\n" +
+            "- opening_story: Meet them where they are right now. Reflect back their life stage and what they've worked hard to build, " +
+            "and the quiet worry sitting underneath it, grounded in their actual pain points and profile — specific, not generic.\n" +
+            "- problem_bridge: Name the specific risks concretely — what's exposed, what could go wrong. Then make the cost of doing " +
+            "nothing vivid and real: what happens to them and the people they love if this gap stays open, and how it widens the longer " +
+            "they wait. Create urgency through honest clarity, not pressure.\n" +
+            "- solution_reveal: Introduce the named product as the bridge — the specific vehicle that carries them from where they are " +
+            "to where they want to be. A turning point, not a feature list.\n" +
+            "- benefit_breakdown: Connect each benefit directly back to a specific pain point named earlier — show concretely how each " +
+            "worry gets resolved.\n" +
+            "- dream_outcome: Paint the 'after' picture vividly and specifically — the peace of mind, the family protected, the " +
+            "milestones secured — in clear contrast to the 'before' of opening_story.\n" +
+            "- call_to_action: A warm, direct, personal invitation to take the next step together.\n\n" +
+            "Each section should be 3-5 sentences, concrete and specific to this client — no filler or boilerplate reassurance.\n\n" +
+            "Respond with ONLY valid JSON matching this shape: " +
             '{"opening_story": string, "problem_bridge": string, "solution_reveal": string, "benefit_breakdown": string, "dream_outcome": string, "call_to_action": string, ' +
-            '"coverage_gap": [{"label": string, "value": number}], "benefit_timeline": [{"year": number, "value": number}]}. ' +
-            "Each narrative field is 2-4 sentences. Reference the client by name, their pain points, and the named product naturally. " +
-            "coverage_gap should have 2-4 illustrative bars (0-100 scale) showing protection gap areas from the client's pain points. " +
-            "benefit_timeline should have 3-5 illustrative points (0-100 scale) showing how the plan's value grows over the years of the premium term. " +
-            "These are directional illustrations for the narrative only, not the client's actual policy figures.",
+            '"before_after": [{"label": string, "before": number, "after": number}], "benefit_timeline": [{"year": number, "value": number}]}. ' +
+            "before_after should have 2-4 items, each a protection area from the client's pain points, with 'before' = their current " +
+            "coverage level and 'after' = their protected level once the plan is in place (both 0-100 scale). " +
+            "benefit_timeline should have 3-5 illustrative points (0-100 scale) showing how the plan's protection value builds over the " +
+            "years of the premium term. These are directional illustrations for the narrative only, not the client's actual policy figures.",
         },
         {
           role: "user",
@@ -386,7 +405,7 @@ export async function generateProposal(
         call_to_action: parsed.call_to_action ?? "",
       },
       charts: {
-        coverage_gap: Array.isArray(parsed.coverage_gap) ? parsed.coverage_gap : undefined,
+        before_after: Array.isArray(parsed.before_after) ? parsed.before_after : undefined,
         benefit_timeline: Array.isArray(parsed.benefit_timeline) ? parsed.benefit_timeline : undefined,
       },
     };
@@ -402,22 +421,23 @@ export async function generateProposal(
       product_matched: productUsed,
       product_source: productSource,
       proposal_sections: {
-        opening_story: `${client.name}, let's talk about what matters most to you and your family.`,
+        opening_story: `${client.name}, you've worked hard to get to where you are today — but underneath that progress, there's a worry you haven't quite put into words yet.`,
         problem_bridge: painPoints.length
-          ? `Right now you're facing: ${painPoints.join(", ")}.`
-          : "Right now there are gaps in your financial protection.",
-        solution_reveal: `${productUsed} is designed to close that gap.`,
-        benefit_breakdown: `${productUsed} provides coverage tailored to your situation.`,
-        dream_outcome: "With this in place, you can focus on what you're working toward.",
-        call_to_action: "Let's take the next step together.",
+          ? `Right now you're carrying real exposure: ${painPoints.join(", ")}. If nothing changes, that gap doesn't stay still — it widens every year you wait, and it's the people you care about who'd feel it first.`
+          : "Right now there are gaps in your financial protection, and they won't close themselves — the longer they sit open, the more exposed you and your family become.",
+        solution_reveal: `That's where ${productUsed} comes in — think of it as the bridge from where you are today to the security you actually want.`,
+        benefit_breakdown: `${productUsed} is built to answer the exact gaps you're facing, so each worry we named has something concrete standing against it.`,
+        dream_outcome: "Picture the other side of this: the gap closed, your family protected, and one less thing keeping you up at night.",
+        call_to_action: "Let's take the next step together and get this in place for you.",
       },
       charts: {
-        coverage_gap: painPoints.length
+        before_after: painPoints.length
           ? painPoints.map((label: string, i: number) => ({
               label,
-              value: Math.max(30, 90 - i * 15),
+              before: Math.max(10, 30 - i * 5),
+              after: Math.max(70, 95 - i * 5),
             }))
-          : [{ label: "Protection gap", value: 70 }],
+          : [{ label: "Protection gap", before: 20, after: 90 }],
         benefit_timeline: [
           { year: 1, value: 15 },
           { year: 5, value: 40 },

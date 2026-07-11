@@ -24,6 +24,7 @@ const styles = StyleSheet.create({
   barLabelRow: { flexDirection: "row", justifyContent: "space-between", fontSize: 8, color: "#525252" },
   barTrack: { height: 5, backgroundColor: "#e5e5e5", borderRadius: 3, marginTop: 2 },
   barFill: { height: 5, backgroundColor: "#d97706", borderRadius: 3 },
+  barTrackSm: { height: 4, backgroundColor: "#e5e5e5", borderRadius: 2, marginTop: 2 },
 });
 
 const SECTIONS: { key: keyof ProposalContent["proposal_sections"]; label: string }[] = [
@@ -65,19 +66,24 @@ export function ProposalPdfDocument({
           </View>
         ))}
 
-        {(content.charts?.coverage_gap?.length || content.charts?.benefit_timeline?.length) && (
+        {(content.charts?.before_after?.length || content.charts?.benefit_timeline?.length) && (
           <View style={styles.chartsRow} wrap={false}>
-            {content.charts?.coverage_gap && content.charts.coverage_gap.length > 0 && (
+            {content.charts?.before_after && content.charts.before_after.length > 0 && (
               <View style={styles.chartBox}>
-                <Text style={styles.chartLabel}>Coverage Gap (illustrative)</Text>
-                {content.charts.coverage_gap.map((bar, i) => (
+                <Text style={styles.chartLabel}>Before &amp; After (illustrative)</Text>
+                {content.charts.before_after.map((bar, i) => (
                   <View key={i} style={styles.barRow}>
                     <View style={styles.barLabelRow}>
                       <Text>{bar.label}</Text>
-                      <Text>{bar.value}</Text>
+                      <Text>{bar.before} {"->"} {bar.after}</Text>
                     </View>
-                    <View style={styles.barTrack}>
-                      <View style={[styles.barFill, { width: `${Math.min(100, Math.max(0, bar.value))}%` }]} />
+                    <View style={styles.barTrackSm}>
+                      <View style={[styles.barFill, { width: `${Math.min(100, Math.max(0, bar.before))}%` }]} />
+                    </View>
+                    <View style={styles.barTrackSm}>
+                      <View
+                        style={[styles.barFill, { width: `${Math.min(100, Math.max(0, bar.after))}%`, backgroundColor: "#059669" }]}
+                      />
                     </View>
                   </View>
                 ))}
