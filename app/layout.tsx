@@ -17,7 +17,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "fcprop — AI Proposal Builder",
+  title: "ProposalOS — AI Proposal Builder",
   description: "Upload client info + a benefit illustration, generate a personalized proposal in minutes.",
 };
 

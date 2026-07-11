@@ -14,22 +14,22 @@ export default async function Home() {
   ]);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14 space-y-8">
-      <header className="mb-2">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 font-serif text-base italic text-white">
-            f
-          </span>
-          <h1 className="font-serif text-2xl italic tracking-tight text-ink">fcprop</h1>
+    <main className="mx-auto max-w-3xl px-6 py-16 space-y-6">
+      <header className="mb-5">
+        <div className="flex items-center gap-3">
+          <h1 className="font-serif text-[28px] font-medium tracking-tight text-ink">
+            Proposal<span className="text-gold-600">OS</span>
+          </h1>
         </div>
-        <p className="mt-2 text-sm text-ink-soft">
+        <div className="mt-3 h-[2px] w-9 bg-gold-400" />
+        <p className="mt-3 text-sm text-ink-soft">
           Upload client info + a benefit illustration, generate a personalized proposal in minutes.
         </p>
       </header>
 
       <IcpPanel defaultIcp={defaultIcp} />
 
-      <section className="rounded-2xl border border-neutral-200/70 bg-paper-raised p-6 shadow-[var(--shadow-card)]">
+      <section className="rounded-[18px] border border-neutral-200/70 bg-paper-raised p-7 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600">
@@ -37,6 +37,9 @@ export default async function Home() {
             </p>
             <p className="mt-1.5 text-sm text-ink-soft">
               Pick a client to add their fact-find, upload a benefit illustration, and generate a proposal.
+            </p>
+            <p className="mt-1 text-xs text-neutral-400">
+              Sections 2–3 continue once you open a client below.
             </p>
           </div>
         </div>
@@ -49,12 +52,12 @@ export default async function Home() {
               <li key={client.id}>
                 <Link
                   href={`/clients/${client.id}`}
-                  className="group flex items-center gap-3 py-3 text-sm -mx-2 px-2 rounded-lg transition-colors hover:bg-brand-50"
+                  className="group flex items-center gap-3.5 py-3.5 text-sm -mx-2.5 px-2.5 rounded-xl transition-colors hover:bg-brand-50"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-100 text-xs font-semibold text-gold-600">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold-100 to-gold-400 text-[13px] font-semibold text-gold-700 shadow-sm ring-2 ring-white">
                     {client.name.slice(0, 1).toUpperCase()}
                   </span>
-                  <span className="flex-1 font-medium text-ink group-hover:text-brand-700">{client.name}</span>
+                  <span className="flex-1 font-medium text-[15px] text-ink group-hover:text-brand-700">{client.name}</span>
                   <span className="text-xs text-neutral-400">
                     {client.age ? `Age ${client.age}` : ""} {client.email ?? ""}
                   </span>
@@ -64,7 +67,7 @@ export default async function Home() {
           </ul>
         )}
 
-        <div className="mt-4">
+        <div className="mt-5">
           <NewClientForm />
         </div>
       </section>

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { listIcps, setDefaultIcp, saveIcp, type SaveIcpResult } from "@/lib/actions/icp";
 import type { Icp } from "@/lib/supabase/types";
+import { FileDropField } from "@/components/file-drop-field";
 
 const initialState: SaveIcpResult = { ok: false };
 
@@ -34,7 +35,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
 
   if (mode === "browse") {
     return (
-      <section className="rounded-2xl border border-neutral-200/70 bg-paper-raised p-6 shadow-[var(--shadow-card)]">
+      <section className="rounded-[18px] border border-neutral-200/70 bg-paper-raised p-7 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between gap-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600">
             Section 1 · Saved Ideal Client Profiles
@@ -42,7 +43,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
           <button
             type="button"
             onClick={() => setMode("view")}
-            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-ink hover:bg-neutral-50"
+            className="rounded-full border border-neutral-300 px-3.5 py-1.5 text-sm font-medium text-ink hover:bg-neutral-50"
           >
             Cancel
           </button>
@@ -55,7 +56,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
           {savedIcps?.map((icp) => (
             <div
               key={icp.id}
-              className={`rounded-lg border p-3.5 ${
+              className={`rounded-xl border p-3.5 ${
                 icp.is_default ? "border-gold-400/50 bg-gold-100/50" : "border-neutral-100 bg-neutral-50"
               }`}
             >
@@ -70,7 +71,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
                     type="button"
                     onClick={() => handleUseAsDefault(icp.id)}
                     disabled={switching === icp.id}
-                    className="shrink-0 rounded-lg border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-ink hover:bg-neutral-100 disabled:opacity-50"
+                    className="shrink-0 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-ink hover:bg-neutral-100 disabled:opacity-50"
                   >
                     {switching === icp.id ? "Switching…" : "Use as default"}
                   </button>
@@ -92,26 +93,26 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
 
   if (mode === "view" && defaultIcp) {
     return (
-      <section className="rounded-2xl border border-brand-100 bg-brand-50/60 p-6 shadow-[var(--shadow-card)]">
+      <section className="rounded-[18px] border border-brand-100 bg-brand-50/60 p-7 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600">
               Section 1 · Ideal Client Profile
             </p>
-            <p className="mt-1.5 text-sm font-medium text-brand-700">Using your default ICP</p>
+            <p className="mt-1.5 font-serif text-[19px] font-medium text-brand-700">Using your default ICP</p>
           </div>
           <div className="flex shrink-0 gap-2">
             <button
               type="button"
               onClick={() => setMode("browse")}
-              className="rounded-lg border border-brand-100 bg-white px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+              className="rounded-full border border-brand-100 bg-white px-3.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
             >
               Switch
             </button>
             <button
               type="button"
               onClick={() => setMode("edit")}
-              className="rounded-lg border border-brand-100 bg-white px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+              className="rounded-full border border-brand-100 bg-white px-3.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
             >
               Edit
             </button>
@@ -131,7 +132,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-200/70 bg-paper-raised p-6 shadow-[var(--shadow-card)]">
+    <section className="rounded-[18px] border border-neutral-200/70 bg-paper-raised p-7 shadow-[var(--shadow-card)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600">
         Section 1 · Ideal Client Profile
       </p>
@@ -149,14 +150,9 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
           rows={4}
           defaultValue={defaultIcp?.chat_text ?? ""}
           placeholder="e.g. My ideal client is a working professional aged 30-45, married with young children..."
-          className="w-full rounded-lg border border-neutral-300 p-3 text-sm text-ink focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="w-full rounded-xl border border-neutral-300 p-3 text-sm text-ink focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
-        <input
-          type="file"
-          name="file"
-          accept=".pdf,.doc,.docx"
-          className="block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border file:border-neutral-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-neutral-50"
-        />
+        <FileDropField name="file" accept=".pdf,.doc,.docx" hint="Attach a supporting document (optional)" />
         <label className="flex items-center gap-2 text-sm text-ink/80">
           <input
             type="checkbox"
@@ -173,7 +169,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-900 disabled:opacity-50"
+            className="rounded-xl bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-900 disabled:opacity-50"
           >
             {pending ? "Saving…" : "Save ICP"}
           </button>
@@ -181,7 +177,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
             <button
               type="button"
               onClick={() => setMode("view")}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-ink hover:bg-neutral-50"
+              className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-ink hover:bg-neutral-50"
             >
               Cancel
             </button>
