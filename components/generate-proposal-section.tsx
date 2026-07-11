@@ -38,16 +38,16 @@ export function GenerateProposalSection({
   const needsConfirmation = hasProposal && proposalStatus === "ready";
 
   return (
-    <section className="rounded-xl border border-neutral-200 p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+    <section className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-700 to-brand-900 p-6 shadow-[var(--shadow-card)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-400">
         Generate Proposal
       </p>
-      <p className="mt-1 text-sm text-neutral-600">
+      <p className="mt-1.5 text-sm text-brand-100">
         Assembles a personalized, story-driven proposal from Sections 1–4.
       </p>
 
       {needsConfirmation && confirmingRegenerate && (
-        <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           This proposal was already approved. Regenerating will overwrite it with a new draft
           that will need to be reviewed and approved again.
         </p>
@@ -60,7 +60,7 @@ export function GenerateProposalSection({
             type="button"
             onClick={() => setConfirmingRegenerate(true)}
             disabled={pending || blockedForIllustration}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600"
+            className="rounded-lg bg-gold-400 px-4 py-2 text-sm font-semibold text-brand-900 shadow-sm hover:bg-gold-400/90 disabled:opacity-50"
           >
             Regenerate proposal
           </button>
@@ -68,11 +68,11 @@ export function GenerateProposalSection({
           <button
             type="submit"
             disabled={pending || blockedForIllustration}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600"
+            className="rounded-lg bg-gold-400 px-4 py-2 text-sm font-semibold text-brand-900 shadow-sm hover:bg-gold-400/90 disabled:opacity-50"
           >
             {pending ? (
               <span className="inline-flex items-center gap-2">
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-brand-900 border-t-transparent" />
                 Generating…
               </span>
             ) : needsConfirmation ? (
@@ -88,7 +88,7 @@ export function GenerateProposalSection({
           <button
             type="button"
             onClick={() => setConfirmingRegenerate(false)}
-            className="text-sm text-neutral-500 hover:underline"
+            className="text-sm text-brand-100 hover:underline"
           >
             Cancel
           </button>
@@ -96,15 +96,15 @@ export function GenerateProposalSection({
       </form>
 
       {state.status === "blocked" && (
-        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
+        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.message}</p>
       )}
       {state.status === "needs_illustration" && (
-        <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {state.message}
         </p>
       )}
       {state.status === "error" && (
-        <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.message}
         </p>
       )}

@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans-ui",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-serif-display",
+  display: "swap",
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+});
 
 export const metadata: Metadata = {
   title: "fcprop — AI Proposal Builder",
@@ -12,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="antialiased bg-neutral-50 text-neutral-900">{children}</body>
+    <html lang="en" className={`${manrope.variable} ${fraunces.variable}`}>
+      <body className="antialiased bg-paper text-ink font-sans">{children}</body>
     </html>
   );
 }

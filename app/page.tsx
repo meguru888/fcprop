@@ -14,23 +14,28 @@ export default async function Home() {
   ]);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">fcprop</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+    <main className="mx-auto max-w-3xl px-6 py-14 space-y-8">
+      <header className="mb-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-700 font-serif text-base italic text-white">
+            f
+          </span>
+          <h1 className="font-serif text-2xl italic tracking-tight text-ink">fcprop</h1>
+        </div>
+        <p className="mt-2 text-sm text-ink-soft">
           Upload client info + a benefit illustration, generate a personalized proposal in minutes.
         </p>
       </header>
 
       <IcpPanel defaultIcp={defaultIcp} />
 
-      <section className="rounded-xl border border-neutral-200 p-5">
+      <section className="rounded-2xl border border-neutral-200/70 bg-paper-raised p-6 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600">
               Section 2 · Clients
             </p>
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="mt-1.5 text-sm text-ink-soft">
               Pick a client to add their fact-find, upload a benefit illustration, and generate a proposal.
             </p>
           </div>
@@ -39,15 +44,18 @@ export default async function Home() {
         {clients.length === 0 ? (
           <p className="mt-4 text-sm text-neutral-400">No clients yet — add your first one below.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-neutral-100">
+          <ul className="mt-5 divide-y divide-neutral-100">
             {clients.map((client) => (
               <li key={client.id}>
                 <Link
                   href={`/clients/${client.id}`}
-                  className="flex items-center justify-between py-3 text-sm hover:bg-neutral-50 -mx-2 px-2 rounded-md"
+                  className="group flex items-center gap-3 py-3 text-sm -mx-2 px-2 rounded-lg transition-colors hover:bg-brand-50"
                 >
-                  <span className="font-medium text-neutral-800">{client.name}</span>
-                  <span className="text-neutral-400">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-100 text-xs font-semibold text-gold-600">
+                    {client.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="flex-1 font-medium text-ink group-hover:text-brand-700">{client.name}</span>
+                  <span className="text-xs text-neutral-400">
                     {client.age ? `Age ${client.age}` : ""} {client.email ?? ""}
                   </span>
                 </Link>
