@@ -61,6 +61,55 @@ export function ProposalView({
         ))}
       </div>
 
+      {content.real_figures && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+              Your Actual Policy Numbers
+            </p>
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+              From your uploaded illustration
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-neutral-700">
+            {content.real_figures.premium !== null && (
+              <span>
+                Premium: <span className="font-medium">{content.real_figures.currency ?? ""} {content.real_figures.premium.toLocaleString()}</span>
+                {content.real_figures.premium_term_years !== null && ` / yr for ${content.real_figures.premium_term_years} yrs`}
+              </span>
+            )}
+            {content.real_figures.sum_assured !== null && (
+              <span>
+                Sum Assured: <span className="font-medium">{content.real_figures.currency ?? ""} {content.real_figures.sum_assured.toLocaleString()}</span>
+              </span>
+            )}
+          </div>
+
+          {content.real_figures.scenarios.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {content.real_figures.scenarios.map((scenario, i) => (
+                <div key={i}>
+                  <p className="text-xs font-medium text-neutral-600">{scenario.label}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {scenario.rows.map((row, j) => (
+                      <span key={j} className="rounded bg-white px-2 py-1 text-xs text-neutral-700 border border-emerald-100">
+                        Yr {row.year}: {content.real_figures!.currency ?? ""} {row.value.toLocaleString()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {content.real_figures.extraction_status === "partial" && (
+            <p className="mt-3 text-xs text-amber-700">
+              Some figures weren&apos;t found in the uploaded document — please double-check the original illustration for anything not shown here.
+            </p>
+          )}
+        </div>
+      )}
+
       {(content.charts?.before_after?.length || content.charts?.benefit_timeline?.length) ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {content.charts.before_after && content.charts.before_after.length > 0 && (

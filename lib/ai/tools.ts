@@ -2,7 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOpenAI, CHAT_MODEL, EMBEDDING_MODEL } from "@/lib/openai/client";
 import { cosineSimilarity } from "@/lib/ai/similarity";
 import { writeAuditLog } from "@/lib/ai/audit";
-import type { ProductKbDoc, ProposalContent } from "@/lib/supabase/types";
+import type {
+  BenefitIllustrationExtractedData,
+  ExtractionStatus,
+  ProductKbDoc,
+  ProposalContent,
+} from "@/lib/supabase/types";
 
 export const KB_MATCH_THRESHOLD = 0.78;
 
@@ -11,6 +16,120 @@ async function embedText(text: string): Promise<number[] | null> {
   if (!openai) return null;
   const res = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: text });
   return res.data[0].embedding;
+}
+
+export interface FigureExtractionResult {
+  data: BenefitIllustrationExtractedData | null;
+  status: ExtractionStatus;
+  notes: string | null;
+  source: string;
+  confidence: number;
+}
+
+/**
+ * Extracts real financial figures from a benefit illustration's raw PDF text.
+ * Hard rule: never call this with empty/near-empty text, and the prompt itself
+ * forbids the model from estimating or inferring any number it can't literally
+ * find in the source — missing fields must come back as null, not a guess.
+ */
+export async function extractBenefitIllustrationFigures(
+  rawText: string,
+): Promise<FigureExtractionResult> {
+  const openai = getOpenAI();
+  if (!openai) {
+    return { data: null, status: "failed", notes: "AI unavailable", source: "fallback", confidence: 0 };
+  }
+
+  const completion = await openai.chat.completions.create({
+    model: CHAT_MODEL,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You extract ONLY figures that are literally printed in this benefit illustration document. " +
+          "This is a real financial document for a real client — accuracy is critical, and a fabricated " +
+          "number could mislead someone about their own money.\n\n" +
+          "Hard rules:\n" +
+          "1. Never calculate, estimate, infer, round, or guess any figure. Only report a number if it " +
+          "appears explicitly in the text.\n" +
+          "2. If a field is not explicitly present in the text, set it to null. Do not leave it out — " +
+          "include the key with a null value.\n" +
+          "3. Extract EVERY distinct projection/scenario row you find (e.g. guaranteed vs non-guaranteed, " +
+          "or different illustrated rates of return), using the scenario label exactly as printed in the " +
+          "document (e.g. 'Guaranteed', 'Non-Guaranteed at 4.25% p.a.'). Do not invent a scenario that " +
+          "isn't named in the text.\n" +
+          "4. For each scenario, extract the year-by-year values exactly as tabulated (e.g. surrender " +
+          "value, cash value, or death benefit at each policy year) — whatever the document's own table " +
+          "columns show.\n" +
+          "5. currency should be exactly as printed (e.g. 'SGD', 'S$', 'USD').\n" +
+          "6. If you are not fully confident a number belongs in the field you're about to place it in, " +
+          "leave that field null instead of guessing.\n\n" +
+          "Respond with ONLY valid JSON matching this shape: " +
+          '{"currency": string|null, "premium": number|null, "premium_term_years": number|null, ' +
+          '"sum_assured": number|null, "scenarios": [{"label": string, "rows": [{"year": number, "value": number}]}]}.',
+      },
+      { role: "user", content: rawText.slice(0, 24000) },
+    ],
+    temperature: 0,
+    response_format: { type: "json_object" },
+  });
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(completion.choices[0]?.message?.content ?? "{}");
+  } catch {
+    return {
+      data: null,
+      status: "failed",
+      notes: "Model returned unparseable output",
+      source: CHAT_MODEL,
+      confidence: 0,
+    };
+  }
+
+  const scenariosRaw = Array.isArray(parsed.scenarios) ? parsed.scenarios : [];
+  const scenarios = scenariosRaw
+    .filter((s): s is { label: unknown; rows: unknown } => !!s && typeof s === "object")
+    .map((s) => ({
+      label: typeof s.label === "string" ? s.label : "Scenario",
+      rows: (Array.isArray(s.rows) ? s.rows : [])
+        .filter((r): r is { year: unknown; value: unknown } => !!r && typeof r === "object")
+        .map((r) => ({
+          year: typeof r.year === "number" ? r.year : Number(r.year),
+          value: typeof r.value === "number" ? r.value : Number(r.value),
+        }))
+        .filter((r) => Number.isFinite(r.year) && Number.isFinite(r.value)),
+    }))
+    .filter((s) => s.rows.length > 0);
+
+  const data: BenefitIllustrationExtractedData = {
+    currency: typeof parsed.currency === "string" ? parsed.currency : null,
+    premium: typeof parsed.premium === "number" ? parsed.premium : null,
+    premium_term_years: typeof parsed.premium_term_years === "number" ? parsed.premium_term_years : null,
+    sum_assured: typeof parsed.sum_assured === "number" ? parsed.sum_assured : null,
+    scenarios,
+  };
+
+  const foundAnything = data.premium !== null || data.sum_assured !== null || scenarios.length > 0;
+  const foundEverythingCore = data.premium !== null && data.sum_assured !== null && scenarios.length > 0;
+
+  if (!foundAnything) {
+    return {
+      data,
+      status: "failed",
+      notes: "No recognizable benefit-illustration figures found in the document text.",
+      source: CHAT_MODEL,
+      confidence: 0.2,
+    };
+  }
+
+  return {
+    data,
+    status: foundEverythingCore ? "ok" : "partial",
+    notes: foundEverythingCore ? null : "Some figures weren't found in the document and were left blank.",
+    source: CHAT_MODEL,
+    confidence: foundEverythingCore ? 0.85 : 0.6,
+  };
 }
 
 export async function summarizeIcp(supabase: SupabaseClient, icpId: string) {
@@ -335,6 +454,12 @@ export async function generateProposal(
     .map((p: string) => p.trim())
     .filter(Boolean);
 
+  const realFigures =
+    illustration?.extracted_data &&
+    (illustration.extraction_status === "ok" || illustration.extraction_status === "partial")
+      ? { ...illustration.extracted_data, extraction_status: illustration.extraction_status }
+      : null;
+
   let content: ProposalContent;
   let contentSource: string;
   let confidence: number;
@@ -378,7 +503,16 @@ export async function generateProposal(
             "before_after should have 2-4 items, each a protection area from the client's pain points, with 'before' = their current " +
             "coverage level and 'after' = their protected level once the plan is in place (both 0-100 scale). " +
             "benefit_timeline should have 3-5 illustrative points (0-100 scale) showing how the plan's protection value builds over the " +
-            "years of the premium term. These are directional illustrations for the narrative only, not the client's actual policy figures.",
+            "years of the premium term. These are directional illustrations for the narrative only, not the client's actual policy figures.\n\n" +
+            (realFigures
+              ? "The user message includes 'real_figures' — actual numbers extracted from this client's real benefit illustration " +
+                "document. You may cite these EXACT figures naturally in benefit_breakdown and/or dream_outcome for credibility " +
+                "(e.g. their real premium, sum assured, or a specific projected value at a specific year). Never alter, round, " +
+                "recalculate, or invent any number beyond what's given in real_figures — if a figure isn't present there, don't " +
+                "state a specific dollar amount as if it were their actual policy figure."
+              : "No real policy figures were available for this client (no benefit illustration was uploaded, or it couldn't be " +
+                "read). Do not state any specific dollar amount as if it were their actual policy figure — speak about benefits " +
+                "and outcomes qualitatively instead."),
         },
         {
           role: "user",
@@ -388,6 +522,7 @@ export async function generateProposal(
             icp_context: refreshedIcp?.summary,
             pain_points: painPoints,
             product_used: productUsed,
+            real_figures: realFigures,
           }),
         },
       ],
@@ -415,6 +550,7 @@ export async function generateProposal(
         before_after: Array.isArray(parsed.before_after) ? parsed.before_after : undefined,
         benefit_timeline: Array.isArray(parsed.benefit_timeline) ? parsed.benefit_timeline : undefined,
       },
+      real_figures: realFigures,
     };
     contentSource = CHAT_MODEL;
     confidence = 0.85;
@@ -452,6 +588,7 @@ export async function generateProposal(
           { year: 20, value: 100 },
         ],
       },
+      real_figures: realFigures,
     };
     contentSource = "fallback";
     confidence = 0.3;

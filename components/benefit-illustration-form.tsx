@@ -5,9 +5,36 @@ import {
   saveBenefitIllustration,
   type SaveIllustrationResult,
 } from "@/lib/actions/benefit-illustrations";
-import type { BenefitIllustration } from "@/lib/supabase/types";
+import type { BenefitIllustration, ExtractionStatus } from "@/lib/supabase/types";
 
 const initialState: SaveIllustrationResult = { ok: false };
+
+const STATUS_COPY: Record<ExtractionStatus, { label: string; className: string }> = {
+  ok: { label: "Figures extracted", className: "bg-emerald-100 text-emerald-700" },
+  partial: { label: "Partially extracted", className: "bg-amber-100 text-amber-700" },
+  no_text_layer: { label: "No text found — review manually", className: "bg-neutral-200 text-neutral-700" },
+  unsupported_format: { label: "Format not auto-readable", className: "bg-neutral-200 text-neutral-700" },
+  failed: { label: "Extraction failed — review manually", className: "bg-red-100 text-red-700" },
+};
+
+function ExtractionStatusBadge({
+  status,
+  notes,
+}: {
+  status: ExtractionStatus | null;
+  notes: string | null;
+}) {
+  if (!status) return null;
+  const copy = STATUS_COPY[status];
+  return (
+    <div className="mt-2">
+      <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${copy.className}`}>
+        {copy.label}
+      </span>
+      {notes && <p className="mt-1 text-xs text-neutral-500">{notes}</p>}
+    </div>
+  );
+}
 
 export function BenefitIllustrationForm({
   clientId,
@@ -33,6 +60,7 @@ export function BenefitIllustrationForm({
             {illustration.product_name || "Uploaded illustration"}
           </p>
           <p className="text-xs text-neutral-500">Uploaded — you can add another below to replace it.</p>
+          <ExtractionStatusBadge status={illustration.extraction_status} notes={illustration.extraction_notes} />
         </div>
       ) : (
         <p className="mt-4 text-sm text-neutral-400">No benefit illustration uploaded yet.</p>

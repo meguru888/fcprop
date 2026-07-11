@@ -35,12 +35,33 @@ export interface ClientProfile {
   created_at: string;
 }
 
+export type ExtractionStatus = "ok" | "partial" | "no_text_layer" | "unsupported_format" | "failed";
+
+export interface BenefitIllustrationScenario {
+  label: string;
+  rows: { year: number; value: number }[];
+}
+
+export interface BenefitIllustrationExtractedData {
+  currency: string | null;
+  premium: number | null;
+  premium_term_years: number | null;
+  sum_assured: number | null;
+  scenarios: BenefitIllustrationScenario[];
+}
+
 export interface BenefitIllustration {
   id: string;
   user_id: string | null;
   client_id: string;
   file_url: string | null;
   product_name: string | null;
+  extracted_data: BenefitIllustrationExtractedData | null;
+  extraction_status: ExtractionStatus | null;
+  extraction_notes: string | null;
+  extraction_source: string | null;
+  extraction_confidence: number | null;
+  extraction_review_status: ReviewStatus;
   created_at: string;
 }
 
@@ -79,6 +100,12 @@ export interface ProposalContent {
     before_after?: { label: string; before: number; after: number }[];
     benefit_timeline?: { year: number; value: number }[];
   };
+  /**
+   * Real figures copied verbatim from the client's benefit illustration extraction —
+   * never LLM-generated or estimated. Present only when extraction succeeded (fully or
+   * partially); absent/null means no real policy numbers are available to show.
+   */
+  real_figures?: (BenefitIllustrationExtractedData & { extraction_status: ExtractionStatus }) | null;
 }
 
 export interface Proposal {

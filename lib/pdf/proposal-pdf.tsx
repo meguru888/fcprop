@@ -25,6 +25,17 @@ const styles = StyleSheet.create({
   barTrack: { height: 5, backgroundColor: "#e5e5e5", borderRadius: 3, marginTop: 2 },
   barFill: { height: 5, backgroundColor: "#d97706", borderRadius: 3 },
   barTrackSm: { height: 4, backgroundColor: "#e5e5e5", borderRadius: 2, marginTop: 2 },
+  realFiguresBox: {
+    padding: 12,
+    borderRadius: 6,
+    backgroundColor: "#ecfdf5",
+    border: "1pt solid #a7f3d0",
+    marginTop: 8,
+  },
+  realFiguresLabel: { fontSize: 9, textTransform: "uppercase", color: "#065f46", marginBottom: 6 },
+  realFiguresSummary: { fontSize: 10, color: "#374151", marginBottom: 4 },
+  scenarioLabel: { fontSize: 9, fontWeight: 700, color: "#065f46", marginTop: 4 },
+  scenarioRow: { fontSize: 9, color: "#374151" },
 });
 
 const SECTIONS: { key: keyof ProposalContent["proposal_sections"]; label: string }[] = [
@@ -65,6 +76,40 @@ export function ProposalPdfDocument({
             <Text style={styles.sectionBody}>{content.proposal_sections[key]}</Text>
           </View>
         ))}
+
+        {content.real_figures && (
+          <View style={styles.realFiguresBox} wrap={false}>
+            <Text style={styles.realFiguresLabel}>Your Actual Policy Numbers (from your uploaded illustration)</Text>
+            {content.real_figures.premium !== null && (
+              <Text style={styles.realFiguresSummary}>
+                Premium: {content.real_figures.currency ?? ""} {content.real_figures.premium.toLocaleString()}
+                {content.real_figures.premium_term_years !== null
+                  ? ` / yr for ${content.real_figures.premium_term_years} yrs`
+                  : ""}
+              </Text>
+            )}
+            {content.real_figures.sum_assured !== null && (
+              <Text style={styles.realFiguresSummary}>
+                Sum Assured: {content.real_figures.currency ?? ""} {content.real_figures.sum_assured.toLocaleString()}
+              </Text>
+            )}
+            {content.real_figures.scenarios.map((scenario, i) => (
+              <View key={i}>
+                <Text style={styles.scenarioLabel}>{scenario.label}</Text>
+                <Text style={styles.scenarioRow}>
+                  {scenario.rows
+                    .map((row) => `Yr ${row.year}: ${content.real_figures!.currency ?? ""} ${row.value.toLocaleString()}`)
+                    .join("   ")}
+                </Text>
+              </View>
+            ))}
+            {content.real_figures.extraction_status === "partial" && (
+              <Text style={{ fontSize: 8, color: "#b45309", marginTop: 4 }}>
+                Some figures weren&apos;t found in the uploaded document — please check the original illustration.
+              </Text>
+            )}
+          </View>
+        )}
 
         {(content.charts?.before_after?.length || content.charts?.benefit_timeline?.length) && (
           <View style={styles.chartsRow} wrap={false}>
