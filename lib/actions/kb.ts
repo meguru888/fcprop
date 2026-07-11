@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadToBucket } from "@/lib/supabase/storage";
+import { embedKbDoc } from "@/lib/ai/tools";
 import type { ProductKbDoc } from "@/lib/supabase/types";
 
 export async function listKbDocs(): Promise<ProductKbDoc[]> {
@@ -38,11 +39,18 @@ export async function uploadKbDoc(
     return { ok: false, error: e instanceof Error ? e.message : "Upload failed." };
   }
 
-  const { error } = await supabase.from("product_kb_docs").insert({
-    file_url: path,
-    original_filename: file.name,
-  });
+  const { data: inserted, error } = await supabase
+    .from("product_kb_docs")
+    .insert({ file_url: path, original_filename: file.name })
+    .select("id")
+    .single();
   if (error) return { ok: false, error: error.message };
+
+  try {
+    await embedKbDoc(supabase, inserted.id);
+  } catch {
+    // Embedding/digestion is best-effort; the doc itself is already saved.
+  }
 
   revalidatePath("/");
   return { ok: true };

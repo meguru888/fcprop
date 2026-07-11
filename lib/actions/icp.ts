@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadToBucket } from "@/lib/supabase/storage";
+import { summarizeIcp } from "@/lib/ai/tools";
 import type { Icp } from "@/lib/supabase/types";
 
 export async function getDefaultIcp(): Promise<Icp | null> {
@@ -62,13 +63,23 @@ export async function saveIcp(_prev: SaveIcpResult, formData: FormData): Promise
     if (clearError) return { ok: false, error: clearError.message };
   }
 
-  const { error } = await supabase.from("icps").insert({
-    chat_text: chatText,
-    file_urls: fileUrls,
-    is_default: setDefault,
-  });
+  const { data: inserted, error } = await supabase
+    .from("icps")
+    .insert({
+      chat_text: chatText,
+      file_urls: fileUrls,
+      is_default: setDefault,
+    })
+    .select("id")
+    .single();
 
   if (error) return { ok: false, error: error.message };
+
+  try {
+    await summarizeIcp(supabase, inserted.id);
+  } catch {
+    // Summary is best-effort; the ICP text itself is already saved.
+  }
 
   revalidatePath("/");
   return { ok: true };

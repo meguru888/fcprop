@@ -3,9 +3,13 @@ import { notFound } from "next/navigation";
 import { getClient } from "@/lib/actions/clients";
 import { getClientProfile } from "@/lib/actions/client-profiles";
 import { getBenefitIllustration } from "@/lib/actions/benefit-illustrations";
+import { getLatestProposal } from "@/lib/actions/proposals";
+import { extractContent } from "@/lib/proposal-content";
 import { ClientProfileForm } from "@/components/client-profile-form";
 import { BenefitIllustrationForm } from "@/components/benefit-illustration-form";
 import { DeleteClientButton } from "@/components/delete-client-button";
+import { GenerateProposalSection } from "@/components/generate-proposal-section";
+import { ProposalView } from "@/components/proposal-view";
 
 export default async function ClientDetailPage({
   params,
@@ -16,10 +20,12 @@ export default async function ClientDetailPage({
   const client = await getClient(id);
   if (!client) notFound();
 
-  const [profile, illustration] = await Promise.all([
+  const [profile, illustration, proposal] = await Promise.all([
     getClientProfile(id),
     getBenefitIllustration(id),
+    getLatestProposal(id),
   ]);
+  const proposalContent = proposal ? extractContent(proposal) : null;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
@@ -39,6 +45,16 @@ export default async function ClientDetailPage({
 
       <ClientProfileForm clientId={id} profile={profile} />
       <BenefitIllustrationForm clientId={id} illustration={illustration} />
+
+      <GenerateProposalSection
+        clientId={id}
+        hasIllustration={!!illustration}
+        hasProposal={!!proposal}
+      />
+
+      {proposal && proposalContent && (
+        <ProposalView proposal={proposal} content={proposalContent} />
+      )}
     </main>
   );
 }

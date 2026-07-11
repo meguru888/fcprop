@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadToBucket } from "@/lib/supabase/storage";
+import { extractPainPoints } from "@/lib/ai/tools";
 import type { ClientProfile } from "@/lib/supabase/types";
 
 export async function getClientProfile(clientId: string): Promise<ClientProfile | null> {
@@ -50,19 +51,28 @@ export async function saveClientProfile(
     }
   }
 
+  let profileId: string;
   if (existing) {
     const { error } = await supabase
       .from("client_profiles")
       .update({ notes_text: notesText, file_urls: fileUrls })
       .eq("id", existing.id);
     if (error) return { ok: false, error: error.message };
+    profileId = existing.id;
   } else {
-    const { error } = await supabase.from("client_profiles").insert({
-      client_id: clientId,
-      notes_text: notesText,
-      file_urls: fileUrls,
-    });
+    const { data: inserted, error } = await supabase
+      .from("client_profiles")
+      .insert({ client_id: clientId, notes_text: notesText, file_urls: fileUrls })
+      .select("id")
+      .single();
     if (error) return { ok: false, error: error.message };
+    profileId = inserted.id;
+  }
+
+  try {
+    await extractPainPoints(supabase, profileId);
+  } catch {
+    // Pain-point extraction is best-effort; the fact-find text itself is already saved.
   }
 
   revalidatePath(`/clients/${clientId}`);
