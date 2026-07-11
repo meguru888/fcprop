@@ -50,6 +50,7 @@ export default async function ClientDetailPage({
         clientId={id}
         hasIllustration={!!illustration}
         hasProposal={!!proposal}
+        proposalStatus={proposal?.status ?? null}
       />
 
       {proposal && proposalContent && (

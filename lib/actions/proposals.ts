@@ -63,3 +63,24 @@ export async function approveProposal(proposalId: string, clientId: string): Pro
   if (error) throw new Error(error.message);
   revalidatePath(`/clients/${clientId}`);
 }
+
+export interface ApproveProposalResult {
+  ok: boolean;
+  error?: string;
+}
+
+export async function runApproveProposal(
+  _prev: ApproveProposalResult,
+  formData: FormData,
+): Promise<ApproveProposalResult> {
+  const proposalId = String(formData.get("proposal_id") ?? "");
+  const clientId = String(formData.get("client_id") ?? "");
+  if (!proposalId || !clientId) return { ok: false, error: "Missing proposal." };
+
+  try {
+    await approveProposal(proposalId, clientId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to approve proposal." };
+  }
+}

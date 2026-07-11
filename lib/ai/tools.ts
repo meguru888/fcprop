@@ -347,8 +347,12 @@ export async function generateProposal(
           role: "system",
           content:
             "You write emotionally resonant, story-driven financial proposals for Singapore financial consultants to present to clients. Respond with ONLY valid JSON matching this shape: " +
-            '{"opening_story": string, "problem_bridge": string, "solution_reveal": string, "benefit_breakdown": string, "dream_outcome": string, "call_to_action": string}. ' +
-            "Each field is 2-4 sentences. Reference the client by name, their pain points, and the named product naturally.",
+            '{"opening_story": string, "problem_bridge": string, "solution_reveal": string, "benefit_breakdown": string, "dream_outcome": string, "call_to_action": string, ' +
+            '"coverage_gap": [{"label": string, "value": number}], "benefit_timeline": [{"year": number, "value": number}]}. ' +
+            "Each narrative field is 2-4 sentences. Reference the client by name, their pain points, and the named product naturally. " +
+            "coverage_gap should have 2-4 illustrative bars (0-100 scale) showing protection gap areas from the client's pain points. " +
+            "benefit_timeline should have 3-5 illustrative points (0-100 scale) showing how the plan's value grows over the years of the premium term. " +
+            "These are directional illustrations for the narrative only, not the client's actual policy figures.",
         },
         {
           role: "user",
@@ -381,6 +385,10 @@ export async function generateProposal(
         dream_outcome: parsed.dream_outcome ?? "",
         call_to_action: parsed.call_to_action ?? "",
       },
+      charts: {
+        coverage_gap: Array.isArray(parsed.coverage_gap) ? parsed.coverage_gap : undefined,
+        benefit_timeline: Array.isArray(parsed.benefit_timeline) ? parsed.benefit_timeline : undefined,
+      },
     };
     contentSource = "gpt-4o";
     confidence = 0.85;
@@ -402,6 +410,20 @@ export async function generateProposal(
         benefit_breakdown: `${productUsed} provides coverage tailored to your situation.`,
         dream_outcome: "With this in place, you can focus on what you're working toward.",
         call_to_action: "Let's take the next step together.",
+      },
+      charts: {
+        coverage_gap: painPoints.length
+          ? painPoints.map((label: string, i: number) => ({
+              label,
+              value: Math.max(30, 90 - i * 15),
+            }))
+          : [{ label: "Protection gap", value: 70 }],
+        benefit_timeline: [
+          { year: 1, value: 15 },
+          { year: 5, value: 40 },
+          { year: 10, value: 65 },
+          { year: 20, value: 100 },
+        ],
       },
     };
     contentSource = "fallback";

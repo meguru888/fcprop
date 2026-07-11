@@ -1,4 +1,5 @@
 import type { Proposal, ProposalContent } from "@/lib/supabase/types";
+import { ProposalApproveButton } from "@/components/proposal-approve-button";
 
 const SECTIONS: { key: keyof ProposalContent["proposal_sections"]; label: string; accent: string }[] = [
   { key: "opening_story", label: "Opening Story", accent: "border-indigo-300 bg-indigo-50" },
@@ -58,6 +59,70 @@ export function ProposalView({
             <p className="mt-2 text-sm leading-relaxed">{content.proposal_sections[key]}</p>
           </div>
         ))}
+      </div>
+
+      {(content.charts?.coverage_gap?.length || content.charts?.benefit_timeline?.length) ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {content.charts.coverage_gap && content.charts.coverage_gap.length > 0 && (
+            <div className="rounded-lg border border-neutral-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Coverage Gap (illustrative)
+              </p>
+              <div className="mt-3 space-y-2">
+                {content.charts.coverage_gap.map((bar, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-xs text-neutral-600">
+                      <span>{bar.label}</span>
+                      <span>{bar.value}</span>
+                    </div>
+                    <div className="mt-1 h-2 w-full rounded-full bg-neutral-100">
+                      <div
+                        className="h-2 rounded-full bg-amber-500"
+                        style={{ width: `${Math.min(100, Math.max(0, bar.value))}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {content.charts.benefit_timeline && content.charts.benefit_timeline.length > 0 && (
+            <div className="rounded-lg border border-neutral-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                Benefit Timeline (illustrative)
+              </p>
+              <div className="mt-3 flex h-24 items-end gap-2">
+                {content.charts.benefit_timeline.map((point, i) => {
+                  const pct = Math.min(100, Math.max(4, point.value));
+                  return (
+                    <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                      <div
+                        className="w-full rounded-t bg-emerald-500"
+                        style={{ height: `${Math.round((pct / 100) * 80)}px` }}
+                      />
+                      <span className="text-[10px] text-neutral-500">Yr {point.year}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-between border-t border-neutral-200 pt-4">
+        {proposal.status === "draft" ? (
+          <ProposalApproveButton proposalId={proposal.id} clientId={proposal.client_id} />
+        ) : (
+          <p className="text-sm text-neutral-500">Approved and ready to present.</p>
+        )}
+        <a
+          href={`/api/proposals/${proposal.id}/pdf`}
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Export PDF
+        </a>
       </div>
     </section>
   );
