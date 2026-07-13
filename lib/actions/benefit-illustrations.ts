@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadToBucket } from "@/lib/supabase/storage";
+import { getUserId } from "@/lib/supabase/user";
 import { extractPdfText } from "@/lib/pdf/extract-text";
 import { extractBenefitIllustrationFigures } from "@/lib/ai/tools";
 import { writeAuditLog } from "@/lib/ai/audit";
@@ -42,6 +43,10 @@ export async function saveBenefitIllustration(
   }
 
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return { ok: false, error: "Your session has expired. Please log in again." };
+  }
 
   let path: string;
   try {
@@ -55,6 +60,7 @@ export async function saveBenefitIllustration(
   const { data: inserted, error } = await supabase
     .from("benefit_illustrations")
     .insert({
+      user_id: userId,
       client_id: clientId,
       file_url: path,
       product_name: productName || null,

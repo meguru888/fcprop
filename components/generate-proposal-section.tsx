@@ -38,7 +38,7 @@ export function GenerateProposalSection({
   const needsConfirmation = hasProposal && proposalStatus === "ready";
 
   return (
-    <section className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-700 to-brand-900 p-6 shadow-[var(--shadow-card)]">
+    <section className="rounded-[18px] border border-brand-100 bg-gradient-to-br from-brand-700 to-brand-900 p-7 shadow-[var(--shadow-card)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold-400">
         Generate Proposal
       </p>
@@ -47,7 +47,7 @@ export function GenerateProposalSection({
       </p>
 
       {needsConfirmation && confirmingRegenerate && (
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
           This proposal was already approved. Regenerating will overwrite it with a new draft
           that will need to be reviewed and approved again.
         </p>
@@ -60,7 +60,7 @@ export function GenerateProposalSection({
             type="button"
             onClick={() => setConfirmingRegenerate(true)}
             disabled={pending || blockedForIllustration}
-            className="rounded-lg bg-gold-400 px-4 py-2 text-sm font-semibold text-brand-900 shadow-sm hover:bg-gold-400/90 disabled:opacity-50"
+            className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-brand-900 shadow-sm transition-shadow hover:bg-gold-400/90 hover:shadow-md disabled:opacity-50"
           >
             Regenerate proposal
           </button>
@@ -68,7 +68,7 @@ export function GenerateProposalSection({
           <button
             type="submit"
             disabled={pending || blockedForIllustration}
-            className="rounded-lg bg-gold-400 px-4 py-2 text-sm font-semibold text-brand-900 shadow-sm hover:bg-gold-400/90 disabled:opacity-50"
+            className="rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-brand-900 shadow-sm transition-shadow hover:bg-gold-400/90 hover:shadow-md disabled:opacity-50"
           >
             {pending ? (
               <span className="inline-flex items-center gap-2">

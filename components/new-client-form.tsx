@@ -1,13 +1,19 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createClientRecord, type CreateClientResult } from "@/lib/actions/clients";
+import { getAnonId } from "@/lib/analytics/anon-id";
 
 const initialState: CreateClientResult = { ok: false };
 
 export function NewClientForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(createClientRecord, initialState);
+  const [anonId, setAnonId] = useState("");
+
+  useEffect(() => {
+    setAnonId(getAnonId());
+  }, []);
 
   if (!open) {
     return (
@@ -23,6 +29,7 @@ export function NewClientForm() {
 
   return (
     <form action={formAction} className="rounded-xl border border-neutral-200 bg-neutral-50 p-5 space-y-3">
+      <input type="hidden" name="anon_id" value={anonId} />
       <div className="flex gap-2">
         <input
           name="name"

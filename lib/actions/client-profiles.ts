@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadToBucket } from "@/lib/supabase/storage";
+import { getUserId } from "@/lib/supabase/user";
 import { extractPainPoints } from "@/lib/ai/tools";
 import type { ClientProfile } from "@/lib/supabase/types";
 
@@ -38,6 +39,10 @@ export async function saveClientProfile(
   }
 
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return { ok: false, error: "Your session has expired. Please log in again." };
+  }
 
   const existing = await getClientProfile(clientId);
   let fileUrls: string[] = existing?.file_urls ?? [];
@@ -62,7 +67,7 @@ export async function saveClientProfile(
   } else {
     const { data: inserted, error } = await supabase
       .from("client_profiles")
-      .insert({ client_id: clientId, notes_text: notesText, file_urls: fileUrls })
+      .insert({ user_id: userId, client_id: clientId, notes_text: notesText, file_urls: fileUrls })
       .select("id")
       .single();
     if (error) return { ok: false, error: error.message };

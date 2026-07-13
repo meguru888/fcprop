@@ -1,5 +1,17 @@
 export type ReviewStatus = "unreviewed" | "approved";
 
+export interface FcProfile {
+  id: string;
+  user_id: string | null;
+  name: string | null;
+  company_name: string | null;
+  title_credentials: string | null;
+  email: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Icp {
   id: string;
   user_id: string | null;
@@ -65,6 +77,8 @@ export interface BenefitIllustration {
   created_at: string;
 }
 
+export type KbDocType = "benefit_illustration" | "product_brochure" | "product_related_document" | "other";
+
 export interface ProductKbDoc {
   id: string;
   user_id: string | null;
@@ -74,6 +88,7 @@ export interface ProductKbDoc {
   concept_summary_source: string | null;
   concept_summary_confidence: number | null;
   concept_summary_review_status: ReviewStatus;
+  doc_type: KbDocType | null;
   embedding: number[] | null;
   created_at: string;
 }
@@ -100,6 +115,13 @@ export interface ProposalContent {
     before_after?: { label: string; before: number; after: number }[];
     benefit_timeline?: { year: number; value: number }[];
   };
+  /**
+   * Concrete risk-trigger events (e.g. critical illness, disability, death) tagged with the
+   * client's age and a quantified dollar cost, grounded only in real figures from their data
+   * (never invented) — same sourcing discipline as problem_bridge. Used to build the age-journey
+   * timeline's "before" (cost of inaction) row.
+   */
+  risk_events?: { age: number; event: string; cost: number }[];
   /**
    * Real figures copied verbatim from the client's benefit illustration extraction —
    * never LLM-generated or estimated. Present only when extraction succeeded (fully or

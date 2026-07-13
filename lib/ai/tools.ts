@@ -2,9 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOpenAI, CHAT_MODEL, EMBEDDING_MODEL } from "@/lib/openai/client";
 import { cosineSimilarity } from "@/lib/ai/similarity";
 import { writeAuditLog } from "@/lib/ai/audit";
+import { BUCKETS } from "@/lib/supabase/storage";
+import { getUserId } from "@/lib/supabase/user";
 import type {
   BenefitIllustrationExtractedData,
   ExtractionStatus,
+  KbDocType,
   ProductKbDoc,
   ProposalContent,
 } from "@/lib/supabase/types";
@@ -261,27 +264,100 @@ export async function embedKbDoc(supabase: SupabaseClient, kbDocId: string) {
   let conceptSummary = doc.concept_summary as string | null;
   let source = doc.concept_summary_source as string | null;
   let confidence = doc.concept_summary_confidence as number | null;
+  let docType = (doc.doc_type as KbDocType | null) ?? null;
+
+  const isPdf = (doc.original_filename ?? "").toLowerCase().endsWith(".pdf");
+  const DOC_TYPES: KbDocType[] = ["benefit_illustration", "product_brochure", "product_related_document", "other"];
+  const asDocType = (value: unknown): KbDocType =>
+    DOC_TYPES.includes(value as KbDocType) ? (value as KbDocType) : "other";
+
+  if (!conceptSummary && openai && isPdf) {
+    const { data: fileBlob } = await supabase.storage.from(BUCKETS.productKb).download(doc.file_url);
+    if (fileBlob) {
+      const buffer = Buffer.from(await fileBlob.arrayBuffer());
+      const completion = await openai.chat.completions.create({
+        model: CHAT_MODEL,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are digesting a financial product document for a knowledge base used to match products to " +
+              "client needs. Read the entire document — all text, tables, and illustrated figures/charts. " +
+              'Respond with a JSON object: {"concept_summary": string, "doc_type": string}. ' +
+              "concept_summary: a concise 2-4 sentence summary covering product type and coverage, key terms " +
+              "(payment period, sum assured, etc.), typical use case, and any notable illustrated values or " +
+              "charts shown. Base this only on what is actually in the document, never invent details. " +
+              'doc_type: classify the document as exactly one of "benefit_illustration", "product_brochure", ' +
+              '"product_related_document", or "other".',
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "file",
+                file: {
+                  filename: doc.original_filename ?? "product.pdf",
+                  file_data: `data:application/pdf;base64,${buffer.toString("base64")}`,
+                },
+              },
+              { type: "text", text: "Summarize and classify this product document." },
+            ],
+          },
+        ],
+        temperature: 0.4,
+      });
+      const raw = completion.choices[0]?.message?.content?.trim();
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        conceptSummary = typeof parsed?.concept_summary === "string" ? parsed.concept_summary : raw;
+        docType = asDocType(parsed?.doc_type);
+      } catch {
+        conceptSummary = raw ?? null;
+        docType = "other";
+      }
+      source = `${CHAT_MODEL}_pdf_content`;
+      confidence = 0.9;
+    }
+  }
 
   if (!conceptSummary && openai) {
     const completion = await openai.chat.completions.create({
       model: CHAT_MODEL,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content:
-            "You are digesting a financial product document for a knowledge base used to match products to client needs. Given only the filename, write a plausible one-sentence concept summary of what this product likely offers (coverage type, term, typical use case). Be concise.",
+            "You are digesting a financial product document for a knowledge base used to match products to " +
+            'client needs. Given only the filename, respond with a JSON object: {"concept_summary": string, ' +
+            '"doc_type": string}. concept_summary: a plausible one-sentence summary of what this product likely ' +
+            'offers (coverage type, term, typical use case). doc_type: classify as exactly one of ' +
+            '"benefit_illustration", "product_brochure", "product_related_document", or "other", based on the ' +
+            "filename. Be concise.",
         },
         { role: "user", content: doc.original_filename ?? "product.pdf" },
       ],
       temperature: 0.4,
     });
-    conceptSummary = completion.choices[0]?.message?.content?.trim() ?? null;
+    const raw = completion.choices[0]?.message?.content?.trim();
+    try {
+      const parsed = raw ? JSON.parse(raw) : null;
+      conceptSummary = typeof parsed?.concept_summary === "string" ? parsed.concept_summary : raw;
+      docType = asDocType(parsed?.doc_type);
+    } catch {
+      conceptSummary = raw ?? null;
+      docType = "other";
+    }
     source = CHAT_MODEL;
     confidence = 0.5;
-  } else if (!conceptSummary) {
+  }
+
+  if (!conceptSummary) {
     conceptSummary = doc.original_filename ?? "Uploaded product document";
     source = "fallback";
     confidence = 0.2;
+    docType = docType ?? "other";
   }
 
   const embedding = await embedText(conceptSummary ?? doc.original_filename ?? "product document");
@@ -293,6 +369,7 @@ export async function embedKbDoc(supabase: SupabaseClient, kbDocId: string) {
       concept_summary_source: source,
       concept_summary_confidence: confidence,
       concept_summary_review_status: "unreviewed",
+      doc_type: docType,
       embedding,
     })
     .eq("id", kbDocId);
@@ -306,7 +383,7 @@ export async function embedKbDoc(supabase: SupabaseClient, kbDocId: string) {
   });
   if (error) throw new Error(error.message);
 
-  return { concept_summary: conceptSummary, embedding };
+  return { concept_summary: conceptSummary, doc_type: docType, embedding };
 }
 
 export interface KbMatch {
@@ -380,6 +457,9 @@ export async function generateProposal(
 ): Promise<GenerateProposalResult> {
   const start = Date.now();
 
+  const userId = await getUserId(supabase);
+  if (!userId) throw new Error("Your session has expired. Please log in again.");
+
   const { data: icp } = await supabase
     .from("icps")
     .select("*")
@@ -429,7 +509,7 @@ export async function generateProposal(
   let productSource: string;
 
   if (illustration) {
-    productUsed = illustration.product_name || "Uploaded benefit illustration";
+    productUsed = illustration.product_name || "the recommended solution";
     productSource = `benefit_illustration_id:${illustration.id}`;
   } else {
     const match = await matchKbProduct(supabase, clientId);
@@ -481,35 +561,53 @@ export async function generateProposal(
             "just as much as opening_story. State things plainly and specifically, using only what's in their profile, pain points, and " +
             "life stage — grounded fact delivered with warmth, not invented narrative or hypotheticals dressed up as scenes.\n\n" +
             "Structure the six sections as an emotional bridge that carries the client from their life today to the life they want, " +
-            "with the product as the vehicle that closes the gap:\n" +
+            "with the product as the vehicle that closes the gap. Throughout, mirror the client's own fears, worries, and concerns " +
+            "back to them — reference the specific things named in their fact-find notes and pain points closely enough that they " +
+            "recognize their own words and feel truly heard, not given a generic summary:\n" +
             "- opening_story: Ground them in their real, current situation right now — their actual life stage, what they've genuinely " +
             "built so far, and the real concern underneath it, drawn directly from their pain points and profile. This is a plain, " +
             "honest reflection of their actual circumstances, not a scene-setting story.\n" +
-            "- problem_bridge: Name the specific risks concretely — what's exposed, what could go wrong. Then make the cost of doing " +
-            "nothing vivid and real: what happens to them and the people they love if this gap stays open, and how it widens the longer " +
-            "they wait. Create urgency through honest clarity, not pressure.\n" +
+            "- problem_bridge (labeled 'The Problems/Obstacles' to the client): Name the specific risks concretely, mapped directly " +
+            "onto the fears and worries this client raised in their fact-find — don't generalize, name their actual exposures. Then " +
+            "quantify and magnify the cost of doing nothing: wherever the client's data (fact_find_notes, pain_points, or real_figures) " +
+            "gives you concrete numbers — income, expenses, existing coverage, a sum-assured or savings gap, premiums, ages, timelines — " +
+            "use those exact figures to make the financial exposure real (e.g. months of income lost, the size of a coverage shortfall, " +
+            "the dollar cost of an uncovered gap). Always write dollar amounts as $X,XXX with comma separators, never a currency code. " +
+            "If no hard number exists for a given worry, describe the real-world stakes concretely (time, disruption, missed " +
+            "milestones) without inventing a specific dollar figure. Show how the exposure compounds and widens the longer they wait. " +
+            "Create urgency through honest, quantified clarity, not pressure or invented numbers.\n" +
             "- solution_reveal: Introduce the named product as the bridge — the specific vehicle that carries them from where they are " +
             "to where they want to be. A turning point, not a feature list.\n" +
             "- benefit_breakdown: Connect each benefit directly back to a specific pain point named earlier — show concretely how each " +
             "worry gets resolved.\n" +
             "- dream_outcome: Describe the 'after' state concretely and plausibly — the peace of mind, the family protected, the " +
             "milestones secured — in clear contrast to opening_story. Ground it in their real goals, not invented imagery.\n" +
-            "- call_to_action: A warm, direct, personal invitation to take the next step together.\n\n" +
+            "- call_to_action: A warm, direct, personal invitation to take the next step together. Never say " +
+            "'illustration' or 'benefit illustration' here — refer to it as 'the recommended solution' instead.\n\n" +
             "Each section should be 3-5 sentences, concrete and specific to this client — no filler, no clichés, no boilerplate " +
             "reassurance.\n\n" +
             "Respond with ONLY valid JSON matching this shape: " +
             '{"opening_story": string, "problem_bridge": string, "solution_reveal": string, "benefit_breakdown": string, "dream_outcome": string, "call_to_action": string, ' +
-            '"before_after": [{"label": string, "before": number, "after": number}], "benefit_timeline": [{"year": number, "value": number}]}. ' +
+            '"before_after": [{"label": string, "before": number, "after": number}], "benefit_timeline": [{"year": number, "value": number}], ' +
+            '"risk_events": [{"age": number, "event": string, "cost": number}]}. ' +
             "before_after should have 2-4 items, each a protection area from the client's pain points, with 'before' = their current " +
             "coverage level and 'after' = their protected level once the plan is in place (both 0-100 scale). " +
             "benefit_timeline should have 3-5 illustrative points (0-100 scale) showing how the plan's protection value builds over the " +
             "years of the premium term. These are directional illustrations for the narrative only, not the client's actual policy figures.\n\n" +
+            "risk_events should have 2-4 items for an age-journey timeline: concrete trigger events (e.g. critical illness, disability, " +
+            "death, prolonged income loss) drawn from the client's own stated fears, each tagged with 'age' = the age at which this " +
+            "exposure is live for them (use client_age unless their notes imply a more specific near-term milestone age) and 'cost' = a " +
+            "quantified dollar figure for what that event would cost them, grounded ONLY in real numbers already present in their data " +
+            "(income, expenses, existing coverage, savings) using exact figures or simple derived math — never invent a cost with no " +
+            "basis. If you cannot ground a plausible event in real numbers, omit it rather than guessing; it is fine to return fewer " +
+            "than 2 items or an empty array.\n\n" +
             (realFigures
               ? "The user message includes 'real_figures' — actual numbers extracted from this client's real benefit illustration " +
                 "document. You may cite these EXACT figures naturally in benefit_breakdown and/or dream_outcome for credibility " +
                 "(e.g. their real premium, sum assured, or a specific projected value at a specific year). Never alter, round, " +
                 "recalculate, or invent any number beyond what's given in real_figures — if a figure isn't present there, don't " +
-                "state a specific dollar amount as if it were their actual policy figure."
+                "state a specific dollar amount as if it were their actual policy figure. Always write cited figures in Singapore " +
+                "dollar format with a comma thousands separator, e.g. $50,000 — never a currency code like 'SGD50000'."
               : "No real policy figures were available for this client (no benefit illustration was uploaded, or it couldn't be " +
                 "read). Do not state any specific dollar amount as if it were their actual policy figure — speak about benefits " +
                 "and outcomes qualitatively instead."),
@@ -520,6 +618,7 @@ export async function generateProposal(
             client_name: client.name,
             client_age: client.age,
             icp_context: refreshedIcp?.summary,
+            fact_find_notes: refreshedProfile?.notes_text ?? "",
             pain_points: painPoints,
             product_used: productUsed,
             real_figures: realFigures,
@@ -550,6 +649,7 @@ export async function generateProposal(
         before_after: Array.isArray(parsed.before_after) ? parsed.before_after : undefined,
         benefit_timeline: Array.isArray(parsed.benefit_timeline) ? parsed.benefit_timeline : undefined,
       },
+      risk_events: Array.isArray(parsed.risk_events) ? parsed.risk_events : undefined,
       real_figures: realFigures,
     };
     contentSource = CHAT_MODEL;
@@ -597,6 +697,7 @@ export async function generateProposal(
   const { data: inserted, error: insertError } = await supabase
     .from("proposals")
     .insert({
+      user_id: userId,
       client_id: clientId,
       status: "draft",
       content_json: content,

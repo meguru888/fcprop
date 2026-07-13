@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState } from "react";
 import { listIcps, setDefaultIcp, saveIcp, type SaveIcpResult } from "@/lib/actions/icp";
 import type { Icp } from "@/lib/supabase/types";
 import { FileDropField } from "@/components/file-drop-field";
+import { track } from "@/lib/analytics/track";
+import { EVENTS, SECTIONS } from "@/lib/analytics/events";
 
 const initialState: SaveIcpResult = { ok: false };
 
@@ -12,9 +14,17 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
   const [state, formAction, pending] = useActionState(saveIcp, initialState);
   const [savedIcps, setSavedIcps] = useState<Icp[] | null>(null);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [editingExisting, setEditingExisting] = useState(false);
 
   useEffect(() => {
-    if (state.ok) setMode("view");
+    if (state.ok) {
+      if (editingExisting) {
+        track(EVENTS.ICP_EDIT_CLICK, SECTIONS.SECTION_1);
+        setEditingExisting(false);
+      }
+      setMode("view");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   useEffect(() => {
@@ -27,6 +37,7 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
     setSwitching(icpId);
     try {
       await setDefaultIcp(icpId);
+      track(EVENTS.ICP_SWITCH_CLICK, SECTIONS.SECTION_1);
       setMode("view");
     } finally {
       setSwitching(null);
@@ -82,7 +93,10 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
         </div>
         <button
           type="button"
-          onClick={() => setMode("edit")}
+          onClick={() => {
+            setEditingExisting(false);
+            setMode("edit");
+          }}
           className="mt-4 text-sm font-medium text-brand-700 underline underline-offset-2"
         >
           + Create a new ICP instead
@@ -111,7 +125,10 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
             </button>
             <button
               type="button"
-              onClick={() => setMode("edit")}
+              onClick={() => {
+                setEditingExisting(true);
+                setMode("edit");
+              }}
               className="rounded-full border border-brand-100 bg-white px-3.5 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
             >
               Edit
@@ -141,6 +158,8 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
       </p>
       <form
         action={(fd) => {
+          const chatText = String(fd.get("chat_text") ?? "").trim();
+          if (chatText) track(EVENTS.ICP_TEXT_INPUT, SECTIONS.SECTION_1);
           formAction(fd);
         }}
         className="mt-4 space-y-3"
@@ -176,7 +195,10 @@ export function IcpPanel({ defaultIcp }: { defaultIcp: Icp | null }) {
           {defaultIcp && (
             <button
               type="button"
-              onClick={() => setMode("view")}
+              onClick={() => {
+                setEditingExisting(false);
+                setMode("view");
+              }}
               className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-ink hover:bg-neutral-50"
             >
               Cancel

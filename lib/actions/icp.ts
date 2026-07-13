@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, uploadToBucket } from "@/lib/supabase/storage";
+import { getUserId } from "@/lib/supabase/user";
 import { summarizeIcp } from "@/lib/ai/tools";
 import type { Icp } from "@/lib/supabase/types";
 
@@ -44,6 +45,10 @@ export async function saveIcp(_prev: SaveIcpResult, formData: FormData): Promise
   }
 
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return { ok: false, error: "Your session has expired. Please log in again." };
+  }
 
   let fileUrls: string[] = [];
   if (file && file.size > 0) {
@@ -66,6 +71,7 @@ export async function saveIcp(_prev: SaveIcpResult, formData: FormData): Promise
   const { data: inserted, error } = await supabase
     .from("icps")
     .insert({
+      user_id: userId,
       chat_text: chatText,
       file_urls: fileUrls,
       is_default: setDefault,

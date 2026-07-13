@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getUserId } from "@/lib/supabase/user";
+import { logEvent } from "@/lib/actions/analytics";
+import { EVENTS, SECTIONS } from "@/lib/analytics/events";
 import type { Client } from "@/lib/supabase/types";
 
 export async function listClients(): Promise<Client[]> {
@@ -45,13 +48,23 @@ export async function createClientRecord(
   }
 
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return { ok: false, error: "Your session has expired. Please log in again." };
+  }
+
   const { data, error } = await supabase
     .from("clients")
-    .insert({ name, age, email: email || null })
+    .insert({ user_id: userId, name, age, email: email || null })
     .select("id")
     .single();
 
   if (error) return { ok: false, error: error.message };
+
+  const anonId = String(formData.get("anon_id") ?? "");
+  if (anonId) {
+    await logEvent(anonId, EVENTS.NEW_CLIENT_CLICK, SECTIONS.SECTION_2, { client_id: data.id });
+  }
 
   revalidatePath("/");
   redirect(`/clients/${data.id}`);

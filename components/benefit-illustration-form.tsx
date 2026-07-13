@@ -6,6 +6,9 @@ import {
   type SaveIllustrationResult,
 } from "@/lib/actions/benefit-illustrations";
 import type { BenefitIllustration, ExtractionStatus } from "@/lib/supabase/types";
+import { FileDropField } from "@/components/file-drop-field";
+import { track } from "@/lib/analytics/track";
+import { EVENTS, SECTIONS } from "@/lib/analytics/events";
 
 const initialState: SaveIllustrationResult = { ok: false };
 
@@ -46,7 +49,7 @@ export function BenefitIllustrationForm({
   const [state, formAction, pending] = useActionState(saveBenefitIllustration, initialState);
 
   return (
-    <section className="rounded-2xl border border-neutral-200/70 bg-paper-raised p-6 shadow-[var(--shadow-card)]">
+    <section className="rounded-[18px] border border-neutral-200/70 bg-paper-raised p-7 shadow-[var(--shadow-card)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600">
         Section 3 · Benefit Illustration <span className="text-neutral-400">(optional)</span>
       </p>
@@ -55,7 +58,7 @@ export function BenefitIllustrationForm({
       </p>
 
       {illustration ? (
-        <div className="mt-4 rounded-lg border border-neutral-100 bg-neutral-50 px-3.5 py-2.5 text-sm">
+        <div className="mt-4 rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3 text-sm">
           <p className="font-medium text-ink">
             {illustration.product_name || "Uploaded illustration"}
           </p>
@@ -66,24 +69,28 @@ export function BenefitIllustrationForm({
         <p className="mt-4 text-sm text-neutral-400">No benefit illustration uploaded yet.</p>
       )}
 
-      <form action={formAction} className="mt-4 space-y-3">
+      <form
+        action={(fd) => {
+          const file = fd.get("file");
+          if (file instanceof File && file.size > 0) {
+            track(EVENTS.BENEFIT_ILLUSTRATION_UPLOAD, SECTIONS.SECTION_3, { client_id: clientId });
+          }
+          formAction(fd);
+        }}
+        className="mt-4 space-y-3"
+      >
         <input type="hidden" name="client_id" value={clientId} />
         <input
           name="product_name"
           placeholder="Product name (optional — we'll detect it if left blank)"
-          className="w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="w-full rounded-xl border border-neutral-300 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
-        <input
-          type="file"
-          name="file"
-          accept=".pdf,.doc,.docx"
-          className="block w-full text-sm text-ink-soft file:mr-3 file:rounded-lg file:border file:border-neutral-300 file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-neutral-50"
-        />
+        <FileDropField name="file" accept=".pdf,.doc,.docx" hint="Click to upload the illustration, or drag a file here" />
         {state.error && <p className="text-sm text-red-600">{state.error}</p>}
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-900 disabled:opacity-50"
+          className="rounded-xl bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-brand-900 disabled:opacity-50"
         >
           {pending ? "Uploading…" : "Upload illustration"}
         </button>
